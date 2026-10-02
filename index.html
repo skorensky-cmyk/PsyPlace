@@ -61,18 +61,41 @@ ol li+li{margin-top:6px}
   var q = location.search || '?utm_source=tg&utm_medium=gate';
   var target = SITE + q;
 
+  // Счётчик GoatCounter (psyplace.goatcounter.com): только события шлюза,
+  // без cookies и личных данных. Запрос — простой «пиксель»; keepalive, чтобы
+  // он долетел, даже если страница тут же уходит на сайт.
+  var GC = 'https://psyplace.goatcounter.com/count';
+  var camp = (q.match(/(?:^|[?&])utm_campaign=([^&]*)/) || [])[1] || 'bez-metki';
+  try { camp = decodeURIComponent(camp); } catch (e) {}
+  camp = camp.toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40) || 'bez-metki';
+  function hit(name) {
+    var url = GC + '?e=true&p=' + encodeURIComponent(name + '-' + camp) +
+      '&t=' + encodeURIComponent('Шлюз: ' + name) + '&rnd=' + Math.random().toString(36).slice(2);
+    try { fetch(url, { mode: 'no-cors', keepalive: true, credentials: 'omit' }).catch(function () {}); }
+    catch (e) { try { new Image().src = url; } catch (e2) {} }
+  }
+
   var wait = document.getElementById('wait');
   var blocked = document.getElementById('blocked');
   var retryBtn = document.getElementById('retry');
   var copyBtn = document.getElementById('copy');
 
+  var tries = 0;
   function probe() {
     wait.hidden = false; blocked.hidden = true;
-    var done = false;
+    var done = false, again = tries++ > 0;
     var img = new Image();
     var timer = setTimeout(function () { fail(); }, WAIT_MS);
-    function ok() { if (done) return; done = true; clearTimeout(timer); location.replace(target); }
-    function fail() { if (done) return; done = true; clearTimeout(timer); img.src = ''; wait.hidden = true; blocked.hidden = false; }
+    function ok() {
+      if (done) return; done = true; clearTimeout(timer);
+      hit(again ? 'proshli-posle-povtora' : 'proshli-srazu');
+      setTimeout(function () { location.replace(target); }, 150);
+    }
+    function fail() {
+      if (done) return; done = true; clearTimeout(timer); img.src = '';
+      hit(again ? 'snova-ne-otkrylsya' : 'podskazka-vpn');
+      wait.hidden = true; blocked.hidden = false;
+    }
     img.onload = ok;
     img.onerror = fail;
     // Маленькая картинка с сайта: загрузилась — значит, сайт доступен.
@@ -81,12 +104,14 @@ ol li+li{margin-top:6px}
 
   retryBtn.addEventListener('click', probe);
   copyBtn.addEventListener('click', function () {
+    hit('skopirovali');
     var done = function () { copyBtn.textContent = 'Ссылка скопирована'; };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(target).then(done, function () { prompt('Скопируйте ссылку:', target); });
     } else { prompt('Скопируйте ссылку:', target); }
   });
 
+  hit('otkryli');
   probe();
 })();
 </script>
