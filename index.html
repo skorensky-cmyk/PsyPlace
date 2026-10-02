@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>PsyPlace — открываем журнал</title>
+<!-- Шлюз для ссылок из телеграма. Стоит НЕ на сервере в России, чтобы
+     открываться и через VPN. Пробует достучаться до psyplace.app; получилось —
+     сразу переходит туда с теми же метками; нет — просит выключить VPN.
+     Ни счётчиков, ни полей, ни данных: только проверка и ссылка. -->
+<style>
+:root{--bg:#F4F4F2;--surface:#FFFFFF;--ink:#1B1A17;--ink-soft:#54524B;--ink-faint:#8A877F;--line:#E3E1D9;--ok:#2F6B4F}
+@media (prefers-color-scheme:dark){:root{--bg:#141412;--surface:#1D1D1A;--ink:#ECEAE4;--ink-soft:#A8A69E;--ink-faint:#78766E;--line:#2F2E2B;--ok:#7FB79A}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font:17px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased;min-height:100svh;display:flex;align-items:center;justify-content:center;padding:24px 20px}
+main{width:100%;max-width:440px}
+.brand{font-weight:700;letter-spacing:-.01em;margin-bottom:28px}
+h1{font-size:24px;line-height:1.25;letter-spacing:-.02em;margin-bottom:14px}
+p{color:var(--ink-soft)}
+p+p{margin-top:12px}
+ol{margin:18px 0 0 20px;color:var(--ink-soft)}
+ol li+li{margin-top:6px}
+.btn{display:block;width:100%;text-align:center;padding:14px 18px;border-radius:12px;font:inherit;font-weight:600;cursor:pointer;text-decoration:none;margin-top:12px;border:1px solid var(--ink);background:var(--ink);color:var(--bg)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btns{margin-top:24px}
+.small{font-size:14px;color:var(--ink-faint);margin-top:18px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:8px;animation:p 1s ease-in-out infinite alternate}
+@keyframes p{from{opacity:.25}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.dot{animation:none}}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">PsyPlace</div>
+
+  <section id="wait">
+    <p><span class="dot"></span>Открываем журнал…</p>
+  </section>
+
+  <section id="blocked" hidden>
+    <h1>Сайт не открывается с&nbsp;включённым VPN</h1>
+    <p>PsyPlace хранит данные на&nbsp;серверах в&nbsp;России, как требует закон о&nbsp;персональных данных. Через VPN такие сайты сейчас часто не&nbsp;открываются — так же ведут себя банки и&nbsp;Яндекс.</p>
+    <ol>
+      <li>Выключите VPN — или включите в&nbsp;нём режим «российские сайты напрямую».</li>
+      <li>Нажмите «Попробовать снова».</li>
+    </ol>
+    <div class="btns">
+      <button class="btn" id="retry" type="button">Попробовать снова</button>
+      <button class="btn ghost" id="copy" type="button">Скопировать ссылку, открою позже</button>
+    </div>
+    <p class="small">PsyPlace — журнал часов терапии, супервизии и&nbsp;практики. Супервизор подтверждает часы по&nbsp;ссылке из&nbsp;письма, 30&nbsp;дней бесплатно.</p>
+  </section>
+</main>
+<script>
+(function () {
+  var SITE = 'https://psyplace.app/';
+  var WAIT_MS = 5000;
+  // Метки из ссылки переезжают на сайт как есть; без меток — помечаем сами.
+  var q = location.search || '?utm_source=tg&utm_medium=gate';
+  var target = SITE + q;
+
+  var wait = document.getElementById('wait');
+  var blocked = document.getElementById('blocked');
+  var retryBtn = document.getElementById('retry');
+  var copyBtn = document.getElementById('copy');
+
+  function probe() {
+    wait.hidden = false; blocked.hidden = true;
+    var done = false;
+    var img = new Image();
+    var timer = setTimeout(function () { fail(); }, WAIT_MS);
+    function ok() { if (done) return; done = true; clearTimeout(timer); location.replace(target); }
+    function fail() { if (done) return; done = true; clearTimeout(timer); img.src = ''; wait.hidden = true; blocked.hidden = false; }
+    img.onload = ok;
+    img.onerror = fail;
+    // Маленькая картинка с сайта: загрузилась — значит, сайт доступен.
+    img.src = SITE + 'app/icon-192.png?ping=' + Date.now();
+  }
+
+  retryBtn.addEventListener('click', probe);
+  copyBtn.addEventListener('click', function () {
+    var done = function () { copyBtn.textContent = 'Ссылка скопирована'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(target).then(done, function () { prompt('Скопируйте ссылку:', target); });
+    } else { prompt('Скопируйте ссылку:', target); }
+  });
+
+  probe();
+})();
+</script>
+</body>
+</html>
